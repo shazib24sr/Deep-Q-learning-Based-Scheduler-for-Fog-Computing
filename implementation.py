@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch as T
 import random
-# from util import plot_learning_curve
 
 class LinearDeepQNetwork(nn.Module):
     def __init__(self, lr, n_actions, input_dims):
@@ -16,7 +15,6 @@ class LinearDeepQNetwork(nn.Module):
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
-    # takes the current and returns list of actions
     def forward(self, state):
         layer1 = F.relu(self.fc1(state))
         actions = self.fc2(layer1)
@@ -62,12 +60,51 @@ class Agent():
         self.Q.optimizer.step()
         self.decrement_epsilon()
 
-    def processDQN_stage1(self, initial_state):
-        action = self.choose_action(initial_state)
-        return action
+def get_data_from_file(file_path):
+    data = np.genfromtxt(file_path, delimiter=',')
+    data = data[~np.isnan(data).any(axis=1)]
+    return data
 
-    def processDQN_stage2(self, initial_state):
-        action = self.choose_action(initial_state)
-        return action
+def train_agent(data, agent, epochs=100):
+    for epoch in range(epochs):
+        total_reward = 0
+        for sample in data:
+            state = sample[:-1]  # Assuming last value is the action
+            action = int(sample[-1])  # Assuming action is the last value
+            next_state = state  # Example: No state transition
+            
+            # Get the action chosen by the agent
+            chosen_action = agent.choose_action(state)
+            
+            # Update agent with the new reward
+            reward = calculate_reward(state, chosen_action, next_state)
+            agent.learn(state, chosen_action, reward, next_state)
+            
+            # Accumulate total reward for the epoch
+            total_reward += reward
+        
+        # Print total reward for the epoch
+        print(f"Epoch {epoch + 1}, Total Reward: {total_reward}, Chosen Action: {chosen_action}")
 
-# TESTING MODEL FOR ACTION AND ENVIRONMENT
+
+def calculate_reward(state, action, next_state):
+    # Implement the logic to calculate rewards based on the current state and action
+    # Example: Return a predefined reward based on the action
+    return 1 if action == 1 else 0
+
+
+def main():
+    file_path = "data.txt"  # Path to your data file
+    data = get_data_from_file(file_path)
+
+    input_dims = data.shape[1] - 1  # Assuming last column is action
+    n_actions = len(data)  # Number of unique actions
+    lr = 0.001  # Learning rate
+
+    agent = Agent(input_dims, n_actions, lr)
+
+    train_agent(data, agent)
+
+if __name__ == "__main__":
+    main()
+
